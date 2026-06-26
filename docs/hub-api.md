@@ -45,14 +45,20 @@ Global `security` = `Bearer` **OR** (`ApiKeyClientId` + `ApiKeyClientSecret`).
 API tokens are created in the Hub UI under **Settings → Security → API Access** and
 sent **directly as headers on each request** (no token-exchange step).
 
-> ⚠️ **Header-name discrepancy to verify against the live API.** The
-> `securitySchemes` block says **`X-Client-ID`** (with a hyphen). However, a prose
-> summary elsewhere in the same spec (the certificate-download endpoint, line
-> ~3437) writes it as **`X-ClientID`** (no hyphen): *"use an API token (using
-> X-ClientID and X-Client-Secret HTTP headers)."* The plugin currently sends the
-> machine-readable spelling `X-Client-ID`. **If a live call returns 401/403 with a
-> valid token, switch to `X-ClientID` (or send both spellings).** This is the #1
-> thing to confirm with real credentials.
+> ✅ **Header spelling — RESOLVED (2026-06-26, live test).** The hyphenated
+> **`X-Client-ID`** / **`X-Client-Secret`** spelling from `securitySchemes` is
+> correct; the plugin already sends it and it works against the live Hub. (The
+> `X-ClientID` no-hyphen prose elsewhere in the spec is just a typo.) Proof: those
+> headers returned **400** "X-Certify-HubAssignedId header is required" on
+> `/internal/v1/hub/subscription/available` — i.e. auth *passed* — while a wrong
+> secret returned 401. No code change was needed.
+>
+> ⚠️ **Credential scope matters.** A managed-instance service principal (the
+> credentials an agent uses to join the Hub) authenticates but is **not**
+> authorized for the Hub-admin `instances` listing — it returns **401**. The
+> inventory needs a token whose security principal holds the **Hub Viewer** role
+> (create an Application-type user with that role, then an API token for it under
+> Settings → Security). See the README "Creating a read-only API token".
 
 > Note: the `security` array on the `instances` operation itself is `[ {}, {} ]`
 > (two empty requirement objects, an artifact of the .NET generator). Treat the
@@ -76,7 +82,7 @@ sent **directly as headers on each request** (no token-exchange step).
 | `tags` | array of `TagSummary` | → grouping; plugin derives `tags_by_category` + `tag_pairs` |
 | `dateLastReported` | string (date-time) | |
 | `dateRegistered` | string (date-time) | |
-| `connectionStatus` | string | e.g. `Connected` → good `filters`/`keyed_groups` target |
+| `connectionStatus` | string | **lower case** live, e.g. `connected` → good `filters`/`keyed_groups` target (compare with `\| lower`) |
 | `isAuthenticated` | boolean | |
 | `isPendingConnection` | boolean | |
 | `isDashboardEnabled` | boolean | |
@@ -91,7 +97,14 @@ sent **directly as headers on each request** (no token-exchange step).
 > **There is no IP / FQDN / address field.** Agents dial out to the Hub, so the
 > Hub stores no routable address. That is why the plugin derives `ansible_host`
 > from `displayTitle` via `hostnames`/`compose` (optionally appending a domain
-> suffix). Confirm what `displayTitle` actually contains in this deployment.
+> suffix).
+>
+> ✅ **`displayTitle` content — RESOLVED (2026-06-26, live test).** It holds the
+> instance's **short machine name** (e.g. `LCE2ADFS01`, `SMTP-RELAY-01`,
+> `umc-docker03`), **not** an FQDN — so append a domain suffix to make
+> `ansible_host` resolvable. The Hub's own managed instance reported a container
+> id (`94bc0ec3f54c`) instead of a hostname. `os` is title-case (`Windows` /
+> `Linux`); `tags` was empty in the test deployment.
 
 ### `TagSummary`
 
@@ -102,6 +115,9 @@ sent **directly as headers on each request** (no token-exchange step).
 The plugin transforms `tags` into:
 - `tags_by_category`: `{ categoryKey: [value, ...] }`
 - `tag_pairs`: `[ "categoryKey:value", ... ]`
+
+The raw array is exposed as the host var **`certify_tags`** (not `tags`, which is
+a reserved Ansible variable name and triggers a warning if set on a host).
 
 ### `StatusSummary` (the `summary` field)
 

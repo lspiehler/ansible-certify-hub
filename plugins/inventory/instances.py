@@ -91,7 +91,7 @@ options:
     description:
       - An ordered list of Jinja2 expressions used to compose each host's
         inventory hostname. Each expression is evaluated against the instance
-        fields (e.g. O(displayTitle), O(os), O(instanceId)); the first one that
+        fields (e.g. C(displayTitle), C(os), C(instanceId)); the first one that
         yields a non-empty value wins.
       - A bare field name such as V(displayTitle) is itself a valid expression.
       - 'For example V("displayTitle ~ ''.example.org''") appends a domain suffix
@@ -108,8 +108,9 @@ options:
     description:
       - A list of Jinja2 boolean expressions evaluated against each instance.
       - An instance is included only when every expression is true.
-      - 'For example V("connectionStatus == ''Connected''") keeps only connected
-        instances.'
+      - 'The Hub reports C(connectionStatus) in lower case (e.g. V(connected)),
+        so compare case-insensitively, for example
+        V("connectionStatus | lower == ''connected''").'
     type: list
     elements: str
     default: []
@@ -119,6 +120,12 @@ notes:
   - In addition to the raw API fields, each host receives a C(tags_by_category)
     dict (categoryKey to list of values) and a C(tag_pairs) list of
     C(categoryKey:value) strings, to make grouping on Certify tags easier.
+  - The API's C(tags) array is exposed as C(certify_tags) rather than C(tags),
+    because C(tags) is a reserved Ansible variable name.
+  - C(displayTitle) holds the instance's short machine name (e.g. V(WEB01)), not
+    a fully-qualified domain name, so append a domain suffix via O(hostnames) or
+    O(compose) when the short name is not resolvable. The Hub's own instance may
+    report a container/host id rather than a hostname.
 seealso:
   - name: Certify Management Hub
     description: Product documentation.
@@ -139,9 +146,8 @@ plugin: lspiehler.certify_hub.instances
 url: https://ctw.example.org
 client_id: "{{ lookup('ansible.builtin.env', 'CERTIFY_HUB_CLIENT_ID') }}"
 client_secret: "{{ lookup('ansible.builtin.env', 'CERTIFY_HUB_CLIENT_SECRET') }}"
-validate_certs: false
 filters:
-  - "connectionStatus == 'Connected'"
+  - "connectionStatus | lower == 'connected'"
 hostnames:
   - "displayTitle ~ '.example.org'"
 compose:
@@ -283,6 +289,12 @@ class InventoryModule(BaseInventoryPlugin, Constructable, Cacheable):
     def _build_hostvars(instance):
         """Copy the raw instance fields and add tag convenience vars."""
         hostvars = dict(instance)
+
+        # 'tags' is a reserved Ansible variable name; setting it as a host var
+        # triggers a "Found variable using reserved name" warning on every run.
+        # Expose the raw API list under 'certify_tags' instead.
+        if "tags" in hostvars:
+            hostvars["certify_tags"] = hostvars.pop("tags")
 
         tags_by_category = {}
         tag_pairs = []

@@ -23,7 +23,8 @@ you manage certificates for — without maintaining a separate static inventory.
 - Full [constructed](https://docs.ansible.com/ansible/latest/collections/ansible/builtin/constructed_inventory.html)
   interface: `hostnames`, `compose`, `keyed_groups`, `groups`, `strict`.
 - Jinja2 `filters` to include only the instances you care about (e.g. connected).
-- First-class grouping on **Certify tags** via the derived `tags_by_category`.
+- First-class grouping on **Certify tags** via the derived `tags_by_category`
+  (the raw tag list is exposed as `certify_tags`).
 - Optional response **caching** (`inventory_cache`).
 - Configurable TLS verification (`validate_certs` / `ca_path`) for internal CAs.
 
@@ -34,8 +35,9 @@ you manage certificates for — without maintaining a separate static inventory.
 - `ansible-core` >= 2.15 (control node: Linux / macOS / WSL — Ansible does not run
   as a controller on native Windows).
 - Network reachability from the control node to your Hub's HTTPS endpoint.
-- A Hub API token (client ID + secret) with permission to read instances, created
-  under **Settings → Security → API Access** in the Hub UI.
+- A Hub API token (client ID + secret) whose security principal holds the
+  **Hub Viewer** role, created under **Settings → Security** in the Hub UI
+  (see [Creating a read-only API token](#creating-a-read-only-api-token)).
 
 No third-party Python packages are required; the plugin uses only `ansible-core`
 and the standard library.
@@ -109,6 +111,27 @@ inventory file:
 > Keep credentials out of source control. Prefer environment variables, Ansible
 > Vault, or a templated `lookup('ansible.builtin.env', ...)` in the inventory file.
 
+### Creating a read-only API token
+
+The token's security principal must have a role that can read Hub instances; the
+built-in **Hub Viewer** role is sufficient. In the Hub UI:
+
+1. **Settings → Security → Users tab:** create a new **Application**-type user and
+   assign it the **Hub Viewer** role. This is the dedicated security principal for
+   the inventory.
+2. **Settings → Security → API Access tab:** click **Add API Token** and choose the
+   Application user you just created as the security principal.
+3. Give the token a **title** (and an optional description), select the **Hub
+   Viewer** role, click **Add/Remove Role Scope**, then click **Add**.
+4. Copy the generated **client ID** and **client secret** — these map to
+   `CERTIFY_HUB_CLIENT_ID` / `CERTIFY_HUB_CLIENT_SECRET` (or the `client_id` /
+   `client_secret` options).
+
+> A managed-instance service principal (the credentials an agent uses to join the
+> Hub) is **not** sufficient — it authenticates but is not authorized for the
+> `/internal/v1/hub/instances` listing and the plugin will report an HTTP 401.
+> Use an Application user with the Hub Viewer role as above.
+
 ---
 
 ## Configuration reference
@@ -141,13 +164,13 @@ convenience variables. The most useful:
 | Variable | Example | Notes |
 | --- | --- | --- |
 | `instanceId` / `id` | `e1b2...` | Stable instance identifier. |
-| `displayTitle` / `customTitle` / `title` | `WEB01` | Friendly/host name. |
-| `os` / `osVersion` | `Windows` / `10.0.20348` | Useful for grouping + connection type. |
-| `clientName` / `clientVersion` | `Certify Certificate Manager` / `6.0.0` | Agent identity. |
-| `connectionStatus` | `Connected` | `Connected` / `Disconnected` / ... |
+| `displayTitle` / `customTitle` / `title` | `WEB01` | Short machine name (**not** an FQDN); the Hub's own instance may show a container/host id. |
+| `os` / `osVersion` | `Windows` / `Ubuntu 24.04.4 LTS` | Useful for grouping + connection type. |
+| `clientName` / `clientVersion` | `Certify Certificate Manager` / `7.0.18.0` | Agent identity. |
+| `connectionStatus` | `connected` | Reported in **lower case**; compare with `\| lower`. |
 | `isAuthenticated`, `isPendingConnection`, `isDashboardEnabled` | `true` | Booleans. |
 | `dateLastReported`, `dateRegistered` | ISO-8601 | Timestamps. |
-| `tags` | `[{categoryKey, value, ...}]` | Raw tag objects from the API. |
+| `certify_tags` | `[{categoryKey, value, ...}]` | Raw tag objects from the API (named `certify_tags` because `tags` is a reserved Ansible name). |
 | `tags_by_category` *(derived)* | `{environment: [production]}` | `categoryKey` → list of values. |
 | `tag_pairs` *(derived)* | `[environment:production]` | Flat `key:value` strings. |
 | `ansible_host` | `WEB01` | Defaults to the inventory hostname; override via `compose` or `hostnames`. |
@@ -216,11 +239,14 @@ group per element, so multi-valued tags "just work".
 
 ```yaml
 filters:
-  - "connectionStatus == 'Connected'"
+  - "connectionStatus | lower == 'connected'"
   - "isAuthenticated"
 ```
 
 Only instances for which every expression is true are added to the inventory.
+
+> The Hub reports `connectionStatus` in **lower case** (e.g. `connected`), so
+> compare with `| lower` rather than against `Connected`.
 
 ---
 
@@ -258,9 +284,8 @@ validate_certs: false
 ```yaml
 plugin: lspiehler.certify_hub.instances
 url: https://ctw.example.org
-validate_certs: false
 filters:
-  - "connectionStatus == 'Connected'"
+  - "connectionStatus | lower == 'connected'"
 hostnames:
   - displayTitle
 compose:

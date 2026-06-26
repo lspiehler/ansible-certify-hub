@@ -1,0 +1,14 @@
+---
+bugfixes:
+  - "instances inventory - expose the API ``tags`` array as the ``certify_tags``
+    host variable instead of ``tags``, which is a reserved Ansible variable name
+    and produced a \"Found variable using reserved name\" warning on every run."
+minor_changes:
+  - "instances inventory - documentation and examples now reflect the live Hub
+    API: ``connectionStatus`` is reported in lower case (compare with
+    ``| lower``), ``displayTitle`` holds the instance's short machine name (not an
+    FQDN, so append a domain suffix for ``ansible_host``), and TLS verification
+    works out of the box against a publicly-trusted Hub certificate."
+  - "instances inventory - README documents creating a read-only API token whose
+    security principal holds the Hub Viewer role (a managed-instance service
+    principal is not authorized for the instances listing)."

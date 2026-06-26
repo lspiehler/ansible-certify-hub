@@ -17,10 +17,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        ansible:
-          - stable-2.16
-          - stable-2.17
-          - devel
+        include:
+          - ansible: stable-2.16
+            python: '3.11'
+          - ansible: stable-2.17
+            python: '3.11'
+          - ansible: devel
+            python: '3.13'
     steps:
       - name: Checkout collection
         uses: actions/checkout@v4
@@ -30,7 +33,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: ${{ matrix.python }}
 
       - name: Install ansible-core (${{ matrix.ansible }})
         run: pip install "https://github.com/ansible/ansible/archive/${{ matrix.ansible }}.tar.gz"
@@ -45,10 +48,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        ansible:
-          - stable-2.16
-          - stable-2.17
-          - devel
+        include:
+          - ansible: stable-2.16
+            python: '3.11'
+          - ansible: stable-2.17
+            python: '3.11'
+          - ansible: devel
+            python: '3.13'
     steps:
       - name: Checkout collection
         uses: actions/checkout@v4
@@ -58,7 +64,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: ${{ matrix.python }}
 
       - name: Install ansible-core (${{ matrix.ansible }})
         run: pip install "https://github.com/ansible/ansible/archive/${{ matrix.ansible }}.tar.gz"

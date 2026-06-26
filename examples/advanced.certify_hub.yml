@@ -10,16 +10,22 @@ url: https://ctw.example.org
 # client_id: "{{ lookup('ansible.builtin.env', 'CERTIFY_HUB_CLIENT_ID') }}"
 # client_secret: "{{ lookup('ansible.builtin.env', 'CERTIFY_HUB_CLIENT_SECRET') }}"
 
-# Internal CA / self-signed cert? Either point at a CA bundle (preferred):
+# TLS verification is on by default and works with a publicly-trusted (e.g.
+# Let's Encrypt) Hub certificate. For an internal CA, point at a CA bundle:
 # ca_path: /etc/pki/tls/certs/internal-ca.pem
-# ...or disable verification (insecure):
+# ...or, as a last resort (insecure), disable verification:
 # validate_certs: false
 
-# Only include instances the Hub currently considers connected.
+# Only include instances the Hub currently considers connected. Note the Hub
+# reports connectionStatus in lower case (e.g. "connected"), so compare with
+# | lower to stay robust.
 filters:
-  - "connectionStatus == 'Connected'"
+  - "connectionStatus | lower == 'connected'"
 
-# Use the instance title as a short hostname and build the FQDN for ansible_host.
+# displayTitle is the instance's short machine name (e.g. WEB01), not an FQDN.
+# Keep the inventory hostname short and append your domain suffix to build a
+# resolvable ansible_host. (To make the FQDN the inventory hostname instead, use
+# hostnames: ["displayTitle ~ '.example.org'"].)
 hostnames:
   - displayTitle
 compose:

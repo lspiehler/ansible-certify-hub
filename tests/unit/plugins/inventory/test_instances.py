@@ -43,7 +43,7 @@ SAMPLE = {
     "osVersion": "10.0.20348",
     "clientName": "Certify Certificate Manager",
     "clientVersion": "6.0.0",
-    "connectionStatus": "Connected",
+    "connectionStatus": "connected",
     "tags": [
         {"categoryKey": "environment", "value": "production"},
         {"categoryKey": "environment", "value": "dmz"},
@@ -64,6 +64,9 @@ def test_build_hostvars_copies_fields_and_adds_tag_helpers():
     hv = InventoryModule._build_hostvars(SAMPLE)
     assert hv["displayTitle"] == "web01"
     assert hv["os"] == "Windows"
+    # 'tags' is reserved; the raw list is exposed as 'certify_tags'.
+    assert "tags" not in hv
+    assert hv["certify_tags"] == SAMPLE["tags"]
     assert hv["tags_by_category"] == {
         "environment": ["production", "dmz"],
         "datacenter": ["nola"],
@@ -74,6 +77,8 @@ def test_build_hostvars_copies_fields_and_adds_tag_helpers():
 
 def test_build_hostvars_handles_missing_tags():
     hv = InventoryModule._build_hostvars({"displayTitle": "x"})
+    assert "tags" not in hv
+    assert "certify_tags" not in hv
     assert hv["tags_by_category"] == {}
     assert hv["tag_pairs"] == []
 
@@ -124,8 +129,9 @@ def test_resolve_hostname_returns_none_when_all_empty(module):
 
 def test_passes_filters_true_and_false(module):
     hv = dict(SAMPLE)
-    assert module._passes_filters(hv, ["connectionStatus == 'Connected'"], False) is True
-    assert module._passes_filters(hv, ["connectionStatus == 'Disconnected'"], False) is False
+    # The live Hub reports connectionStatus in lower case; compare with | lower.
+    assert module._passes_filters(hv, ["connectionStatus | lower == 'connected'"], False) is True
+    assert module._passes_filters(hv, ["connectionStatus | lower == 'disconnected'"], False) is False
 
 
 def test_passes_filters_empty_list_includes(module):

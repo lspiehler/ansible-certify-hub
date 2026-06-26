@@ -16,26 +16,31 @@ It is third-party / community (not vendor-affiliated). Licensed GPL-3.0-or-later
 
 ## Status (2026-06-26)
 
-**Scaffold complete; not yet validated end-to-end.** Authored on a Windows box
-where Ansible cannot run (see below), so the following are **still TODO on Linux**:
+**Validated end-to-end on Linux against the live Hub.** All scaffold TODOs are
+done:
 
-- [ ] `ansible-doc -t inventory lspiehler.certify_hub.instances` renders cleanly.
-- [ ] `pytest tests/unit` passes (logic is unit-tested; never executed — `import
-      ansible.module_utils.urls` pulls in the Unix-only `grp` module, so the test
-      module can't even import on Windows).
-- [ ] **Live run** against a real Hub (`https://ctw.example.org`) with a
-      read-only API token (client ID + secret).
-- [ ] `ansible-test sanity` / `ansible-test units` (run from inside the collection
-      path, ideally `--docker`).
-- [ ] Resolve the **`X-Client-ID` vs `X-ClientID`** header ambiguity empirically
-      (see `docs/hub-api.md` — the #1 open question).
-- [ ] Confirm what `displayTitle` actually contains and whether a domain suffix is
-      needed for `ansible_host` to resolve; set sane example defaults accordingly.
-- [ ] Confirm TLS: try `validate_certs: true` first; only fall back to a CA bundle
-      / `validate_certs: false` if the cert isn't trusted.
+- [x] `ansible-doc -t inventory lspiehler.certify_hub.instances` renders cleanly.
+- [x] `pytest tests/unit` passes (10 tests).
+- [x] **Live run** against the real Hub (10 instances; `--list` and `--graph`
+      green) with a read-only API token.
+- [x] `ansible-test sanity` / `ansible-test units` pass. Run here via `--venv`
+      (this box has no Docker); use `--docker` where available. CI runs `--docker`.
+- [x] Header spelling resolved: hyphenated **`X-Client-ID`** / **`X-Client-Secret`**
+      is correct (the `X-ClientID` prose was a typo). No code change needed.
+- [x] `displayTitle` resolved: it's the instance's **short machine name**, not an
+      FQDN (the Hub's own instance shows a container id). Append a domain suffix
+      for `ansible_host`; examples do this.
+- [x] TLS resolved: `validate_certs: true` (default) works against the Hub's
+      publicly-trusted (Let's Encrypt) cert.
 
-The initial scaffold is committed and pushed to GitHub; keep committing as you
-validate. Bar for a 0.1.0 tag: `pytest` + a live `ansible-inventory --list` green.
+Empirical findings folded into code/docs: `connectionStatus` is **lower case**
+(`connected`) so filters compare with `| lower`; the API `tags` array is exposed
+as **`certify_tags`** (the var `tags` is reserved). **Credential scope matters:** a
+managed-instance service principal authenticates but is *not* authorized for the
+`instances` listing (401) — the inventory needs a token whose principal holds the
+**Hub Viewer** role (see README "Creating a read-only API token").
+
+Remaining before a 0.1.0 tag: claim the Galaxy namespace and publish.
 
 ## ⚠️ Environment: control node must be Linux/macOS/WSL
 
@@ -91,7 +96,9 @@ ansible-certify-hub/
 
 - **API field names stay as the API returns them** (camelCase: `displayTitle`,
   `connectionStatus`, `osVersion`). Host vars mirror the API 1:1, plus the derived
-  `tags_by_category` (dict) and `tag_pairs` (list).
+  `tags_by_category` (dict) and `tag_pairs` (list). The one exception: the API
+  `tags` array is exposed as **`certify_tags`** because `tags` is a reserved
+  Ansible variable name.
 - Keep the full **constructed** + **inventory_cache** doc fragments; don't
   re-implement `compose`/`groups`/`keyed_groups`/`strict`/`cache`.
 - Inventory source files must end with `certify_hub.{yml,yaml}` or `ctw.{yml,yaml}`
@@ -151,7 +158,8 @@ in addition to — `X-Client-ID`, then re-run step 5. See `docs/hub-api.md`.
 - `_build_headers` — chooses API-key vs Bearer; raises on a half-set key pair.
 - `_fetch_instances` — `open_url` GET, maps HTTP/URL errors to friendly
   `AnsibleError`s, returns the decoded JSON array.
-- `_build_hostvars` — copies API fields verbatim, adds `tags_by_category` / `tag_pairs`.
+- `_build_hostvars` — copies API fields verbatim (renaming `tags` →
+  `certify_tags`, a reserved name), adds `tags_by_category` / `tag_pairs`.
 - `_passes_filters` — every `filters` Jinja expr must be truthy (via `_compose` + `boolean`).
 - `_resolve_hostname` — first non-empty `hostnames` expr wins (treats `None`/`"none"` as empty).
 - `_populate` — add host, set vars, default `ansible_host`, then
