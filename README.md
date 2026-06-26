@@ -253,18 +253,18 @@ validate_certs: false
 
 ## End-to-end example
 
-`inventory/lcmchealth.certify_hub.yml`:
+`inventory/advanced.certify_hub.yml`:
 
 ```yaml
 plugin: lspiehler.certify_hub.instances
-url: https://ctw.lcmchealth.org
+url: https://ctw.example.org
 validate_certs: false
 filters:
   - "connectionStatus == 'Connected'"
 hostnames:
   - displayTitle
 compose:
-  ansible_host: "displayTitle ~ '.lcmchealth.org'"
+  ansible_host: "displayTitle ~ '.example.org'"
   ansible_connection: "'winrm' if 'windows' in (os | default('') | lower) else 'ssh'"
 keyed_groups:
   - key: os
@@ -278,9 +278,9 @@ groups:
 ```
 
 ```bash
-ansible-inventory -i inventory/lcmchealth.certify_hub.yml --graph
-ansible windows -i inventory/lcmchealth.certify_hub.yml -m ansible.windows.win_ping
-ansible linux   -i inventory/lcmchealth.certify_hub.yml -m ansible.builtin.ping
+ansible-inventory -i inventory/advanced.certify_hub.yml --graph
+ansible windows -i inventory/advanced.certify_hub.yml -m ansible.windows.win_ping
+ansible linux   -i inventory/advanced.certify_hub.yml -m ansible.builtin.ping
 ```
 
 Per-group connection details belong in `group_vars/` (e.g. `group_vars/windows.yml`

@@ -9,7 +9,7 @@ development (intended to continue on a **Linux** control node).
 **Certify The Web (Webprofusion) Management Hub**. The single plugin,
 `lspiehler.certify_hub.instances`, calls the Hub's
 `GET /internal/v1/hub/instances` API and turns each managed instance into an
-Ansible host. Target deployment: `https://ctw.lcmchealth.org`.
+Ansible host. Example Hub URL: `https://ctw.example.org` (point the inventory source at your own Hub).
 
 It is third-party / community (not vendor-affiliated). Licensed GPL-3.0-or-later
 (Ansible plugin convention).
@@ -23,8 +23,8 @@ where Ansible cannot run (see below), so the following are **still TODO on Linux
 - [ ] `pytest tests/unit` passes (logic is unit-tested; never executed — `import
       ansible.module_utils.urls` pulls in the Unix-only `grp` module, so the test
       module can't even import on Windows).
-- [ ] **Live run** against `https://ctw.lcmchealth.org` with a real API token
-      (the user will provide a read-only client ID + secret).
+- [ ] **Live run** against a real Hub (`https://ctw.example.org`) with a
+      read-only API token (client ID + secret).
 - [ ] `ansible-test sanity` / `ansible-test units` (run from inside the collection
       path, ideally `--docker`).
 - [ ] Resolve the **`X-Client-ID` vs `X-ClientID`** header ambiguity empirically
@@ -34,8 +34,8 @@ where Ansible cannot run (see below), so the following are **still TODO on Linux
 - [ ] Confirm TLS: try `validate_certs: true` first; only fall back to a CA bundle
       / `validate_certs: false` if the cert isn't trusted.
 
-The git repo has **not** been committed yet (init only) — make the first commit
-once `pytest` + a live `ansible-inventory --list` are green.
+The initial scaffold is committed and pushed to GitHub; keep committing as you
+validate. Bar for a 0.1.0 tag: `pytest` + a live `ansible-inventory --list` green.
 
 ## ⚠️ Environment: control node must be Linux/macOS/WSL
 
@@ -43,7 +43,7 @@ Ansible does not support **native Windows** as a control node — `ansible-core`
 imports `grp`/`pwd`/`fcntl` at import time. `pip install ansible-core` succeeds on
 Windows but `ansible*`/`pytest` of the plugin fail with
 `ModuleNotFoundError: No module named 'grp'`. Continue on Linux (or WSL). This is
-purely an authoring/testing constraint; the plugin itself is fine on a Linux
+purely a development/testing constraint; the plugin itself is fine on a Linux
 controller.
 
 ## Repo layout
@@ -56,7 +56,7 @@ ansible-certify-hub/
 │   └── instances.py            # THE plugin (DOCUMENTATION/EXAMPLES + InventoryModule)
 ├── examples/
 │   ├── certify_hub.yml             # minimal inventory source
-│   └── lcmchealth.certify_hub.yml  # worked example (suffix FQDN, os/status/tag groups)
+│   └── advanced.certify_hub.yml    # worked example (suffix FQDN, os/status/tag groups)
 ├── tests/unit/
 │   ├── requirements.txt
 │   └── plugins/inventory/test_instances.py   # pytest; mocks _compose with real jinja2
@@ -84,8 +84,8 @@ ansible-certify-hub/
    Bearer `token` (alternative). Each option also reads an env var
    (`CERTIFY_HUB_URL`, `CERTIFY_HUB_CLIENT_ID`, `CERTIFY_HUB_CLIENT_SECRET`,
    `CERTIFY_HUB_TOKEN`). Never put secrets in the inventory file.
-5. **Live validation:** the user opted to provide read-only credentials in-chat;
-   validate parsing + the header spelling against the real Hub.
+5. **Live validation:** validate parsing and the header spelling against a real
+   Hub using a read-only API token.
 
 ## Conventions for this collection
 
@@ -126,7 +126,7 @@ export CERTIFY_HUB_CLIENT_ID='...'
 export CERTIFY_HUB_CLIENT_SECRET='...'
 cat > /tmp/ctw.certify_hub.yml <<'YAML'
 plugin: lspiehler.certify_hub.instances
-url: https://ctw.lcmchealth.org
+url: https://ctw.example.org
 # validate_certs: false   # only if the cert isn't trusted by the box
 YAML
 ansible-inventory -i /tmp/ctw.certify_hub.yml --list -vvv

@@ -1,17 +1,15 @@
 # Certify Management Hub API — reference notes
 
-Captured from the **live OpenAPI spec** of the LCMC deployment on 2026-06-26.
+Captured from a Certify Management Hub's **live OpenAPI spec** (v1) on 2026-06-26.
 This is the authoritative source for the data the inventory plugin consumes, so a
 new session does not have to re-fetch and re-read the (large) spec.
 
 ## Where the spec lives
 
-- **Swagger/Scalar UI:** `https://ctw.lcmchealth.org/api/docs/`
-- **Raw OpenAPI JSON:** `https://ctw.lcmchealth.org/openapi/v1.json` (~280 KB, OpenAPI 3.0.4)
-- Re-fetch: `curl -sk https://ctw.lcmchealth.org/openapi/v1.json -o ctw_openapi.json`
-  (the deployment was reachable from the internal network; the public internet was
-  firewalled on the Windows authoring box — gnu.org/etc. timed out).
-- The declared server in the spec is `http://ctw.lcmchealth.org/` (note: **http** in
+- **Swagger/Scalar UI:** `https://ctw.example.org/api/docs/`
+- **Raw OpenAPI JSON:** `https://ctw.example.org/openapi/v1.json` (~280 KB, OpenAPI 3.0.4)
+- Re-fetch: `curl -sk https://ctw.example.org/openapi/v1.json -o ctw_openapi.json`
+- The declared server in the spec is `http://ctw.example.org/` (note: **http** in
   the doc, but use **https** in practice).
 
 ## The endpoint the plugin uses

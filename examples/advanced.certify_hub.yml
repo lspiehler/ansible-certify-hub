@@ -3,7 +3,7 @@
 # split Windows vs Linux for connection settings, group by OS / status / tags,
 # and only surface instances that are currently connected.
 plugin: lspiehler.certify_hub.instances
-url: https://ctw.lcmchealth.org
+url: https://ctw.example.org
 
 # Credentials are read from the environment by default (CERTIFY_HUB_CLIENT_ID /
 # CERTIFY_HUB_CLIENT_SECRET). You can also template them in explicitly:
@@ -23,7 +23,7 @@ filters:
 hostnames:
   - displayTitle
 compose:
-  ansible_host: "displayTitle ~ '.lcmchealth.org'"
+  ansible_host: "displayTitle ~ '.example.org'"
   ansible_connection: "'winrm' if 'windows' in (os | default('') | lower) else 'ssh'"
 
 # Groups: os_windows / os_linux, status_connected, plus a tag-driven group such
