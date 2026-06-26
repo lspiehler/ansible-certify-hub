@@ -1,0 +1,82 @@
+---
+name: Release
+
+# Trigger by pushing a version tag, e.g.:
+#   git tag -a v0.1.0 -m "..."  && git push origin v0.1.0
+# or run manually from the Actions tab against a tag ref (workflow_dispatch).
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write          # needed to create the GitHub Release
+
+env:
+  COLLECTION_PATH: ansible_collections/lspiehler/certify_hub
+
+jobs:
+  release:
+    name: Build, test, and publish
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout collection
+        uses: actions/checkout@v4
+        with:
+          path: ${{ env.COLLECTION_PATH }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install ansible-core
+        run: pip install "ansible-core>=2.16"
+
+      - name: Verify the tag matches galaxy.yml version
+        working-directory: ${{ env.COLLECTION_PATH }}
+        run: |
+          set -euo pipefail
+          GALAXY_VERSION="$(python -c 'import yaml; print(yaml.safe_load(open("galaxy.yml"))["version"])')"
+          TAG="${GITHUB_REF_NAME#v}"
+          echo "galaxy.yml=$GALAXY_VERSION tag=$TAG"
+          if [ "$GALAXY_VERSION" != "$TAG" ]; then
+            echo "::error::Tag v$TAG does not match galaxy.yml version $GALAXY_VERSION"
+            exit 1
+          fi
+
+      - name: Sanity tests
+        run: ansible-test sanity --docker -v --color
+        working-directory: ${{ env.COLLECTION_PATH }}
+
+      - name: Unit tests
+        run: ansible-test units --docker -v --color
+        working-directory: ${{ env.COLLECTION_PATH }}
+
+      - name: Build collection artifact
+        working-directory: ${{ env.COLLECTION_PATH }}
+        run: ansible-galaxy collection build . --output-path "$GITHUB_WORKSPACE/dist"
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "$GITHUB_REF_NAME" \
+            --generate-notes \
+            "$GITHUB_WORKSPACE"/dist/*.tar.gz
+
+      - name: Publish to Ansible Galaxy
+        env:
+          GALAXY_API_KEY: ${{ secrets.GALAXY_API_KEY }}
+        run: |
+          if [ -z "${GALAXY_API_KEY:-}" ]; then
+            echo "GALAXY_API_KEY secret not set — skipping Galaxy publish."
+            echo "Add the secret (Settings > Secrets and variables > Actions) to enable it."
+            exit 0
+          fi
+          ansible-galaxy collection publish \
+            "$GITHUB_WORKSPACE"/dist/*.tar.gz \
+            --api-key "$GALAXY_API_KEY"
