@@ -1,0 +1,2 @@
+# Test-only requirements (ansible-core and jinja2 are already present at runtime).
+pytest

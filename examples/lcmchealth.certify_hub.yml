@@ -1,0 +1,41 @@
+---
+# Worked example: derive a reachable FQDN from each instance's display title,
+# split Windows vs Linux for connection settings, group by OS / status / tags,
+# and only surface instances that are currently connected.
+plugin: lspiehler.certify_hub.instances
+url: https://ctw.lcmchealth.org
+
+# Credentials are read from the environment by default (CERTIFY_HUB_CLIENT_ID /
+# CERTIFY_HUB_CLIENT_SECRET). You can also template them in explicitly:
+# client_id: "{{ lookup('ansible.builtin.env', 'CERTIFY_HUB_CLIENT_ID') }}"
+# client_secret: "{{ lookup('ansible.builtin.env', 'CERTIFY_HUB_CLIENT_SECRET') }}"
+
+# Internal CA / self-signed cert? Either point at a CA bundle (preferred):
+# ca_path: /etc/pki/tls/certs/internal-ca.pem
+# ...or disable verification (insecure):
+# validate_certs: false
+
+# Only include instances the Hub currently considers connected.
+filters:
+  - "connectionStatus == 'Connected'"
+
+# Use the instance title as a short hostname and build the FQDN for ansible_host.
+hostnames:
+  - displayTitle
+compose:
+  ansible_host: "displayTitle ~ '.lcmchealth.org'"
+  ansible_connection: "'winrm' if 'windows' in (os | default('') | lower) else 'ssh'"
+
+# Groups: os_windows / os_linux, status_connected, plus a tag-driven group such
+# as env_production from a Certify tag whose categoryKey is 'environment'.
+keyed_groups:
+  - key: os
+    prefix: os
+    separator: "_"
+  - key: connectionStatus
+    prefix: status
+  - key: tags_by_category.environment
+    prefix: env
+groups:
+  windows: "'windows' in (os | default('') | lower)"
+  linux: "'linux' in (os | default('') | lower)"

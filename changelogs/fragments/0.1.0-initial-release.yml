@@ -1,0 +1,5 @@
+---
+release_summary: |
+  Initial release of the ``lspiehler.certify_hub`` collection, providing the
+  ``lspiehler.certify_hub.instances`` dynamic inventory plugin that builds an
+  Ansible inventory from the instances managed by a Certify Management Hub.

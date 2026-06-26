@@ -1,0 +1,68 @@
+---
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+env:
+  COLLECTION_PATH: ansible_collections/lspiehler/certify_hub
+
+jobs:
+  sanity:
+    name: Sanity (ansible-core ${{ matrix.ansible }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        ansible:
+          - stable-2.16
+          - stable-2.17
+          - devel
+    steps:
+      - name: Checkout collection
+        uses: actions/checkout@v4
+        with:
+          path: ${{ env.COLLECTION_PATH }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install ansible-core (${{ matrix.ansible }})
+        run: pip install "https://github.com/ansible/ansible/archive/${{ matrix.ansible }}.tar.gz"
+
+      - name: Run sanity tests
+        run: ansible-test sanity --docker -v --color
+        working-directory: ${{ env.COLLECTION_PATH }}
+
+  units:
+    name: Units (ansible-core ${{ matrix.ansible }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        ansible:
+          - stable-2.16
+          - stable-2.17
+          - devel
+    steps:
+      - name: Checkout collection
+        uses: actions/checkout@v4
+        with:
+          path: ${{ env.COLLECTION_PATH }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install ansible-core (${{ matrix.ansible }})
+        run: pip install "https://github.com/ansible/ansible/archive/${{ matrix.ansible }}.tar.gz"
+
+      - name: Run unit tests
+        run: ansible-test units --docker -v --color
+        working-directory: ${{ env.COLLECTION_PATH }}

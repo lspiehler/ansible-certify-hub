@@ -1,0 +1,32 @@
+---
+namespace: lspiehler
+name: certify_hub
+version: 0.1.0
+readme: README.md
+authors:
+  - Lyas Spiehler (@lspiehler)
+description: >-
+  Ansible dynamic inventory for instances managed by a Certify The Web
+  (Webprofusion) Management Hub.
+license:
+  - GPL-3.0-or-later
+tags:
+  - inventory
+  - certify
+  - certifytheweb
+  - acme
+  - pki
+  - tls
+  - certificates
+  - windows
+  - linux
+  - infrastructure
+repository: https://github.com/lspiehler/ansible-certify-hub
+documentation: https://github.com/lspiehler/ansible-certify-hub/blob/main/README.md
+homepage: https://github.com/lspiehler/ansible-certify-hub
+issues: https://github.com/lspiehler/ansible-certify-hub/issues
+build_ignore:
+  - '*.tar.gz'
+  - .github
+  - .gitignore
+  - tests/output

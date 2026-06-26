@@ -1,0 +1,21 @@
+# Build artifacts
+*.tar.gz
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.venv/
+venv/
+
+# Test caches / ansible-test output
+.pytest_cache/
+tests/output/
+
+# Local secrets / scratch inventories (keep these out of git)
+*.local.yml
+*.local.yaml
+.env

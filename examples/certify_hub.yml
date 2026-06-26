@@ -1,0 +1,12 @@
+---
+# Minimal inventory source for the lspiehler.certify_hub.instances plugin.
+#
+# Usage:
+#   export CERTIFY_HUB_CLIENT_ID=...        # from Hub > Settings > Security > API Access
+#   export CERTIFY_HUB_CLIENT_SECRET=...
+#   ansible-inventory -i examples/certify_hub.yml --list
+#
+# The filename must end with one of:
+#   certify_hub.yml | certify_hub.yaml | ctw.yml | ctw.yaml
+plugin: lspiehler.certify_hub.instances
+url: https://ctw.example.org
