@@ -28,5 +28,15 @@ issues: https://github.com/lspiehler/ansible-certify-hub/issues
 build_ignore:
   - '*.tar.gz'
   - .github
+  - .git
   - .gitignore
+  - .gitattributes
   - tests/output
+  - .venv
+  - venv
+  - .pytest_cache
+  - __pycache__
+  - '*.pyc'
+  - '*.local.yml'
+  - '*.local.yaml'
+  - CLAUDE.md
