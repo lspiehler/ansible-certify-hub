@@ -1,0 +1,4 @@
+# Normalize all text files to LF in the repository (and on checkout), so the
+# collection is byte-stable across Windows/Linux/macOS and passes ansible-test
+# line-ending sanity.
+* text=auto eol=lf
